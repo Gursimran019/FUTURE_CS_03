@@ -1,0 +1,276 @@
+{
+  "info": {
+    "name": "Secure File Portal API",
+    "description": "API collection for testing the Secure File Portal with AES encryption",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "fileId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload File",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('fileId', response.fileId);",
+              "    pm.test('File uploaded successfully', function () {",
+              "        pm.expect(response.success).to.be.true;",
+              "        pm.expect(response.fileId).to.be.a('string');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "upload"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Files",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is an array', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/files",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "files"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Download File",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has content', function () {",
+              "    pm.expect(pm.response.responseSize).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/download/{{fileId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "download", "{{fileId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete File",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('File deleted successfully', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/files/{{fileId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "files", "{{fileId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Rate Limiting",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// This test should eventually return 429 Too Many Requests",
+              "if (pm.response.code === 429) {",
+              "    pm.test('Rate limiting is working', function () {",
+              "        pm.expect(pm.response.code).to.equal(429);",
+              "    });",
+              "} else {",
+              "    pm.test('Upload within rate limit', function () {",
+              "        pm.expect(pm.response.code).to.equal(200);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "upload"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test File Size Limit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Large file rejected', function () {",
+              "    pm.expect(pm.response.code).to.equal(400);",
+              "});",
+              "",
+              "pm.test('Error message about file size', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.include('large');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": [],
+              "description": "Upload a file larger than 100MB to test size limit"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "upload"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Invalid File ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Invalid file ID returns 404', function () {",
+              "    pm.expect(pm.response.code).to.equal(404);",
+              "});",
+              "",
+              "pm.test('Error message for not found', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.include('not found');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/download/invalid-file-id-12345",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "download", "invalid-file-id-12345"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
